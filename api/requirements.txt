@@ -1,3 +1,6 @@
 fastapi
 pydantic
+uvicorn
+python-multipart
 pika
+minio

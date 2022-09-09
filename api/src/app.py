@@ -5,6 +5,7 @@ import json
 
 from io import BytesIO
 
+import uvicorn
 from fastapi import FastAPI, Request, HTTPException, UploadFile, Depends
 from fastapi import status as HTTPStatus
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,6 +13,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from pydantic import BaseModel, validator, EmailStr
 
+from settings import app_settings, allowed_mimes
+from tools import FileHandler
 
 #-App Globals--------------------------------------------------
 
@@ -60,10 +63,34 @@ async def api_root():
 
 
 #--------------------------------------------
-
+@app.get("/media", tags=["transfer"])
+async def get_media_list():
+  file_handler = FileHandler()
+  res = file_handler.get_list_of_objects()
+  return res
 
 #--------------------------------------------
+@app.post("/media", tags=["transfer"])
+async def upload_media_file(file: UploadFile):
 
+  if file.content_type not in allowed_mimes:
+    raise HTTPException(
+      status_code=HTTPStatus.HTTP_400_BAD_REQUEST,
+      detail="invalid file type. Please upload one of the following %s" %allowed_mimes
+    )
+
+  # content = await file.read()
+
+  file_handler = FileHandler()
+  await file_handler.upload_media_from_byte(file=file)
+
+  return {"filename": file.filename}
+
+#--------------------------------------------
+@app.delete("/media/{filename}", tags=["transfer"])
+async def delete_media_file(filename):
+  file_handler = FileHandler()
+  file_handler.delete_media_by_filename(filename=filename)
 
 #--------------------------------------------
 
@@ -77,9 +104,7 @@ async def api_root():
 if __name__ == "__main__":
   if "dev".lower() in sys.argv:
     print("Dev Mode")
-    uvicorn.run(app="__main__:app", host="0.0.0.0", port=conf_settings.settings_API_Port, debug=True, reload=True)
+    uvicorn.run(app="__main__:app", host="0.0.0.0", port=app_settings.app_port, debug=True, reload=True)
   else:
     print("Prod Mode")
-    # import webbrowser
-    # webbrowser.open("http://localhost:%s" %conf_settings.API_PORT)
-    uvicorn.run(app="__main__:app", host="0.0.0.0", port=conf_settings.settings_API_Port)
+    uvicorn.run(app="__main__:app", host="0.0.0.0", port=app_settings.app_port)
