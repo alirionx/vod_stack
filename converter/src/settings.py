@@ -8,8 +8,11 @@ MINIO_TRANSFER_BUCKET = "vod-upload"
 MINIO_STREAMING_BUCKET = "vod-streaming"
 RABBITMQ_HOST = "localhost"
 RABBITMQ_PORT = 5672
-
-allowed_mimes = ["video/mpeg", "video/mp4", "video/x-matroska", "video/quicktime", "video/webm"]
+RABBITMQ_USER = "rabbitmq"
+RABBITMQ_PASSWORD = "VERYSECRET"
+RABBITMQ_JOB_QUEUE = "jobs"
+RABBITMQ_STATUS_QUEUE = "status"
+JOB_TEMP_DIR = "./tmp"
 
 #------------------------------------------------
 import os
@@ -26,6 +29,11 @@ class SettingsModel(BaseModel):
   minio_streaming_bucket: str | None = MINIO_STREAMING_BUCKET
   rabbitmq_host: str | None = RABBITMQ_HOST
   rabbitmq_port: int | None = RABBITMQ_PORT
+  rabbitmq_user: str | None = RABBITMQ_USER
+  rabbitmq_password: int | None = RABBITMQ_PASSWORD
+  rabbitmq_job_queue: int | None = RABBITMQ_JOB_QUEUE
+  rabbitmq_status_queue: int | None = RABBITMQ_STATUS_QUEUE
+  job_temp_dir:str | None = JOB_TEMP_DIR
 
 #------------------------------------------------
 env_dict = {}

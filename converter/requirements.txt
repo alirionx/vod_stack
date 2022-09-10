@@ -1,0 +1,6 @@
+pika
+minio
+pydantic
+# ffmpeg-python
+ffmpegio
+python-ffmpeg-video-streaming
