@@ -141,7 +141,7 @@ class JobHandler:
 
     #-------------
     ch = self.rabbitmq_connection.channel()
-    qu = ch.queue_declare(queue=self.job_queue)
+    qu = ch.queue_declare(queue=self.job_queue, durable=True)
     ch.basic_consume(on_message_callback=on_message, queue=self.job_queue)
     
     #-------------
