@@ -84,7 +84,8 @@ class FileHandler:
 #--------------------------------------------------------
 class JobHandler:
   def __init__(self):
-    self.queue_name = app_settings.rabbitmq_job_queue
+    self.job_queue = app_settings.rabbitmq_job_queue
+    self.status_queue = app_settings.rabbitmq_status_queue
     self.rabbitmq_connection = None
 
     self.credentials = pika.PlainCredentials(
@@ -106,12 +107,18 @@ class JobHandler:
   #---------------------------
   def send_job_to_queue(self, payload:str):
     ch = self.rabbitmq_connection.channel()
-    qu = ch.queue_declare(queue=self.queue_name)
+    qu = ch.queue_declare(
+      queue=self.job_queue,
+      durable=True
+    )
 
     ch.basic_publish(
       exchange='',
-      routing_key=self.queue_name,
-      body=payload
+      routing_key=self.job_queue,
+      body=payload,
+      properties=pika.BasicProperties(
+        delivery_mode=2,  # make message persistent
+      )
     )
     self.close_connection_and_cleanup()
 
@@ -134,8 +141,8 @@ class JobHandler:
 
     #-------------
     ch = self.rabbitmq_connection.channel()
-    qu = ch.queue_declare(queue=self.queue_name)
-    ch.basic_consume(on_message_callback=on_message, queue=self.queue_name)
+    qu = ch.queue_declare(queue=self.job_queue)
+    ch.basic_consume(on_message_callback=on_message, queue=self.job_queue)
     
     #-------------
     tmp_tread = Thread(target=timeout_kill_func)
@@ -162,8 +169,8 @@ class JobHandler:
 
     #-------------
     ch = self.rabbitmq_connection.channel()
-    qu = ch.queue_declare(queue=self.queue_name)
-    ch.basic_consume(queue=self.queue_name, on_message_callback=callback, auto_ack=False)
+    qu = ch.queue_declare(queue=self.job_queue)
+    ch.basic_consume(queue=self.job_queue, on_message_callback=callback, auto_ack=False)
 
     #-------------
     tmp_tread = Thread(target=timeout_kill_func)
@@ -182,6 +189,29 @@ class JobHandler:
       "message_count": ch_res.method.message_count
     }
     return res
+
+  #---------------------------
+  def get_converter_state(self):
+    ch = self.rabbitmq_connection.channel()
+    qu = ch.queue_declare(
+      queue = self.status_queue,
+      arguments={'x-message-ttl' : 10000}
+    )
+
+    status_data = {}
+    while True:
+      res = ch.basic_get( queue = self.status_queue, auto_ack=True )
+      if not res[0]: break
+      
+      item = json.loads(res[2])
+      if item["object_name"] not in status_data:
+        status_data[item["object_name"]] = {}
+      
+      status_data[item["object_name"]] = item
+
+    # print(status_obj)
+    return status_data
+
 
   #---------------------------
   def close_connection_and_cleanup(self):

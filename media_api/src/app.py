@@ -112,7 +112,7 @@ async def delete_media_file(filename):
 
 #--------------------------------------------
 @app.get("/jobs", tags=["jobs"])
-async def vod_job_get():
+async def jobs_job_get():
 
   job_handler = JobHandler()
   res = job_handler.get_queue_state()
@@ -121,7 +121,7 @@ async def vod_job_get():
 
 #--------------------------------------------
 @app.post("/job", tags=["jobs"])
-async def vod_job_post(item:VodModel):
+async def jobs_job_post(item:VodModel):
 
   job_handler = JobHandler()
   payload = json.dumps(dict(item), default=str)
@@ -131,7 +131,7 @@ async def vod_job_post(item:VodModel):
 
 #--------------------------------------------
 @app.delete("/job/{delivery_tag}", tags=["jobs"])
-async def vod_job_delete(delivery_tag:int):
+async def jobs_job_delete(delivery_tag:int):
 
   job_handler = JobHandler()
   job_handler.delete_job_in_queue(delivery_tag=delivery_tag)
@@ -140,7 +140,7 @@ async def vod_job_delete(delivery_tag:int):
 
 #--------------------------------------------
 @app.delete("/queue/{queue_name}", tags=["jobs"])
-async def vod_queue_delete(queue_name:str):
+async def jobs_queue_delete(queue_name:str):
 
   job_handler = JobHandler()
   res = job_handler.delete_queue_by_name(queue_name=queue_name)
@@ -148,7 +148,12 @@ async def vod_queue_delete(queue_name:str):
   return res
 
 #--------------------------------------------
-
+@app.get("/converter/status", tags=["jobs"])
+async def converter_status_get():
+  
+  job_handler = JobHandler()
+  res = job_handler.get_converter_state()
+  return res
 
 #--------------------------------------------
 
