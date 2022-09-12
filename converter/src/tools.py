@@ -218,6 +218,24 @@ class Converter:
     #--------------
     if not self.minio_cli.bucket_exists(bucket_name = app_settings.minio_streaming_bucket):
       self.minio_cli.make_bucket( bucket_name = app_settings.minio_streaming_bucket)
+      public_policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+              "Effect": "Allow",
+              "Principal": {"AWS": "*"},
+              "Action": ["s3:GetBucketLocation", "s3:ListBucket"],
+              "Resource": "arn:aws:s3:::%s" %app_settings.minio_streaming_bucket,
+          },
+          {
+              "Effect": "Allow",
+              "Principal": {"AWS": "*"},
+              "Action": "s3:GetObject",
+              "Resource": "arn:aws:s3:::%s/*" %app_settings.minio_streaming_bucket,
+          },
+        ],
+      }
+      self.minio_cli.set_bucket_policy(app_settings.minio_streaming_bucket, json.dumps(public_policy))
     
     #--------------
     # tgt_bucket = self.object_item["id"]

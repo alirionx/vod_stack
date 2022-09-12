@@ -31,7 +31,7 @@ class FileHandler:
     # if not self.minio_cli: self.create_minio_cli()
     if not self.minio_cli.bucket_exists(app_settings.minio_transfer_bucket):
       self.minio_cli.make_bucket(app_settings.minio_transfer_bucket)
-
+      
   #---------------------------
   async def upload_media_from_byte(self, file:starlette.datastructures.UploadFile):
     data = await file.read() 
