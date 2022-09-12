@@ -47,21 +47,31 @@ class JobWorker:
 
   #-------------------------------
   def on_job_receive(self, ch, method, properties, body):
+    #----------
     item = json.loads( body.decode() )
     item["delivery_tag"] = method.delivery_tag
     item["routing_key"] = method.routing_key
     print(item)
 
-    converter = Converter(object_name=item["object_name"])
+    #----------
+    converter = Converter(object_item=item)
     converter.download_object()
     # converter.get_media_info()
 
-    thread = Thread(target=converter.media_to_dash, args=(True,))
-    thread.start()
-    while thread.is_alive():  # Loop while the thread is processing
+    #----------
+    thread_convert = Thread(target=converter.media_to_hls, args=(True,))
+    thread_convert.start()
+    while thread_convert.is_alive():  # Loop while the thread is processing
       ch._connection.sleep(2.0)
 
+    thread_upload = Thread(target=converter.upload_stream_data)
+    thread_upload.start()
+    while thread_upload.is_alive():  # Loop while the thread is processing
+      ch._connection.sleep(2.0)
+
+    #----------
     ch.basic_ack(delivery_tag=method.delivery_tag)
+    
 
   #-------------------------------
   def start_consuming_jobs(self):
@@ -92,10 +102,11 @@ class Converter:
   _720p  = ffmpeg_streaming.Representation(ffmpeg_streaming.Size(1280, 720), ffmpeg_streaming.Bitrate(2048 * 1024, 320 * 1024))
   _1080p = ffmpeg_streaming.Representation(ffmpeg_streaming.Size(1920, 1080), ffmpeg_streaming.Bitrate(4096 * 1024, 320 * 1024))
 
-  def __init__(self, object_name:str):
+  def __init__(self, object_item:dict):
     #--------------
     self.minio_cli = None
-    self.object_name = object_name
+    self.object_item = object_item
+    self.object_name = object_item["object_name"]
 
     #--------------
     self.media_tmp_path = os.path.join(app_settings.job_temp_dir, self.object_name).replace("\\", "/")
@@ -194,6 +205,58 @@ class Converter:
     return res
   
   #-------------------------------
+  def upload_stream_data(self):
+
+    status_payload = {
+      "job_state": "uploading",
+      "object_name": self.object_name,
+      "percentage_done": 0,
+      "time_left": "n.a."
+    }
+    self.publish_stats(payload=status_payload)
+
+    #--------------
+    if not self.minio_cli.bucket_exists(bucket_name = app_settings.minio_streaming_bucket):
+      self.minio_cli.make_bucket( bucket_name = app_settings.minio_streaming_bucket)
+    
+    #--------------
+    # tgt_bucket = self.object_item["id"]
+
+    # if self.minio_cli.bucket_exists(bucket_name = tgt_bucket):
+    #   tmp_list = self.minio_cli.list_objects(bucket_name = tgt_bucket)
+    #   self.minio_cli.remove_objects(bucket_name = tgt_bucket, delete_object_list=tmp_list)
+    # else:
+    #   self.minio_cli.make_bucket( bucket_name = tgt_bucket)
+
+    #--------------
+    with open( os.path.join(self.stream_tmp_path,"object_item.json"), "w" ) as fl:
+      fl.write(json.dumps(self.object_item))
+
+    #--------------
+    file_list = os.listdir(self.stream_tmp_path)
+    num_files = len(file_list)
+    i = 0
+    for filename in file_list:
+      i += 1
+      print("upload file %s of %s" %(i, num_files), end='\n')
+
+      cur_path = os.path.join(self.stream_tmp_path, filename)
+      self.minio_cli.fput_object(
+        bucket_name = app_settings.minio_streaming_bucket,
+        file_path = cur_path,
+        object_name = self.object_item["id"]+"/"+filename
+      )
+
+    #--------------
+    status_payload = {
+      "job_state": "uploading",
+      "object_name": self.object_name,
+      "percentage_done": 100,
+      "time_left": "n.a."
+    }
+    self.publish_stats(payload=status_payload)
+
+  #-------------------------------
   def publish_stats(self, payload:dict):
     ch = self.rabbitmq_connection.channel()
     qu = ch.queue_declare(
@@ -209,15 +272,15 @@ class Converter:
     ch.close()
     
   #---------------------------
-  def media_to_dash(self, monitor=True):
+  def media_to_hls(self, monitor=True):
     if not os.path.isfile(self.media_tmp_path):
       raise Exception("no media! download it first eg. via 'download_object'")   
 
     #----------
     video = ffmpeg_streaming.input(self.media_tmp_path)
-    dash = video.dash(ffmpeg_streaming.Formats.h264())
-    # dash.auto_generate_representations()
-    dash.representations(self._480p, self._720p, self._1080p)
+    hls = video.hls(ffmpeg_streaming.Formats.h264())
+    # hls.auto_generate_representations()
+    hls.representations(self._480p, self._720p, self._1080p)
 
     #----------
     shutil.rmtree(self.stream_tmp_path, ignore_errors=True)
@@ -226,9 +289,9 @@ class Converter:
     
     #----------
     if monitor:
-      dash.output(tgt_path, monitor=self.status_monitor)
+      hls.output(tgt_path, monitor=self.status_monitor)
     else:
-      dash.output(tgt_path)
+      hls.output(tgt_path)
 
   #---------------------------
   def status_monitor(self, ffmpeg, duration, time_, time_left, process):

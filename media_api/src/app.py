@@ -38,7 +38,7 @@ class VodModel(BaseModel):
   media_name: str 
   media_description: str | None = None
   publisher: str | None = None
-  id: uuid.UUID | None = uuid.uuid4()
+  id: uuid.UUID | None = None
 
   @validator("object_name")
   def check_object_name_in_list(cls, val):
@@ -47,6 +47,7 @@ class VodModel(BaseModel):
       raise ValueError("object with name '%s' does not exist" %val)
     return val
 
+  
 #--------------
 
 #--------------
@@ -122,6 +123,8 @@ async def jobs_job_get():
 #--------------------------------------------
 @app.post("/job", tags=["jobs"])
 async def jobs_job_post(item:VodModel):
+  if not item.id:
+    item.id = uuid.uuid4()
 
   job_handler = JobHandler()
   payload = json.dumps(dict(item), default=str)
@@ -150,7 +153,7 @@ async def jobs_queue_delete(queue_name:str):
 #--------------------------------------------
 @app.get("/converter/status", tags=["jobs"])
 async def converter_status_get():
-  
+
   job_handler = JobHandler()
   res = job_handler.get_converter_state()
   return res
