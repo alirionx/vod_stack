@@ -1,5 +1,5 @@
 minio
-s3fs
+CouchDB
 uvicorn
 fastapi
 pydantic

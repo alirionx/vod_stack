@@ -55,6 +55,8 @@ async def api_root():
   }
   return data
 
+#--------------------------------------------
+
 
 #--------------------------------------------
 @app.get("/stream/{id}/{filename}", tags=["stream"])
@@ -80,26 +82,6 @@ async def stream_file_get(id:uuid.UUID, filename:str):
 
 
 #--------------------------------------------
-@app.get("/stream2/{id}/{filename}", tags=["stream"])
-async def stream2_file_get(id:uuid.UUID, filename:str):
-
-  stream_serve.download_files_to_tmp(id=str(id))
-
-  return True
-
-  # s3 = s3fs.S3FileSystem(
-  #   key='minio',
-  #   secret='VERYSECRET',
-  #   client_kwargs={
-  #     'endpoint_url': 'http://localhost:9000'
-  #   }
-  # )
-  # # res = s3.ls(app_settings.minio_streaming_bucket + "/"+ str(id))
-  # res = s3.open(app_settings.minio_streaming_bucket + "/" + str(id) + "/" + filename)
-  
-  # print(res)
-
-  # return StreamingResponse(BytesIO(res.read()))
 
 
 

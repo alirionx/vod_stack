@@ -28,3 +28,13 @@ docker run -d \
   -p 15672:15672 \
   -p 5672:5672 \
   rabbitmq:3-management
+
+
+### CouchDD Things
+docker run -d \
+  -p 5984:5984 \
+  --name some-couchdb \
+  -v couchdb_data:/opt/couchdb/data \
+  -e COUCHDB_USER=couchdb \
+  -e COUCHDB_PASSWORD=VERYSECRET \
+  couchdb:latest

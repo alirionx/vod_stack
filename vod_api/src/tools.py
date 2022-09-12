@@ -8,9 +8,60 @@ import json
 from io import BytesIO
 
 from minio import Minio
+import couchdb	
 
 
 from settings import app_settings
+
+
+#--------------------------------------------------------
+class StreamMgmt:
+  def __init__(self):
+    self.minio_cli = None
+    self.bucket_name = app_settings.minio_streaming_bucket
+
+    self.couchdb_cli = None
+
+    self.create_minio_cli()
+    self.check_minio_bucket()
+
+  #---------------------------------
+  def create_minio_cli(self):
+    self.minio_cli = Minio(
+      app_settings.minio_host + ":" + str(app_settings.minio_port),
+      access_key = app_settings.minio_user,
+      secret_key = app_settings.minio_password,
+      secure=False
+    )
+
+  #---------------------------------
+  def check_minio_bucket(self):
+    if not self.minio_cli.bucket_exists(self.bucket_name):
+      raise Exception(
+        "Media Souce bucket '%s' does not exist" %app_settings.minio_streaming_bucket
+      )
+
+  #---------------------------------
+  def create_couchdb_cli(self):
+    self.couchdb_cli = couchdb.Server('https://username:password@host:port/')
+
+    
+  #---------------------------------
+
+
+  
+  
+  #---------------------------------
+  
+  
+  #---------------------------------
+  
+  
+  #---------------------------------
+  
+  
+  #---------------------------------
+
 
 
 #--------------------------------------------------------
