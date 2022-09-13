@@ -1,0 +1,79 @@
+<!doctype html>
+<html>
+  <head>
+    <title>A minimal Dash.js</title>
+    <script src="http://cdn.dashjs.org/v3.1.0/dash.all.min.js"></script>
+  </head>
+  <body>
+    <div class="video_frame">
+      <video id="video_player" height="600" controls></video>
+    </div>
+    <div class="url_frame">
+      <input type="url" id="video_url_input" placeholder="paste your mpd url here" />
+      <button id="call_video_btn" onclick="apply_video()">go</button>
+    </div>
+  </body>
+</html>
+
+
+
+<script>
+var player = dashjs.MediaPlayer().create();
+
+function apply_video(){
+  var hash_url = document.getElementById("video_url_input").value;
+  if(!hash_url.length) return
+
+  try{
+    player.reset()
+    player = dashjs.MediaPlayer().create();
+  }
+  catch{}
+  player.initialize(document.getElementById("video_player"), hash_url, true);
+}
+
+if(location.hash.replace("#", "").length){
+  document.getElementById("video_url_input").value = location.hash.replace("#", "")
+  // location.hash = ""
+  document.getElementById("call_video_btn").click()
+}
+
+</script>
+
+
+<style>
+body{
+  font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+}
+
+.video_frame{
+  padding: 12px;
+  text-align: center;
+}
+.url_frame{
+  text-align: center;
+  padding: 10px;
+}
+#call_video_btn{
+  margin: 0 40px 0 12px;
+  width: 80px;
+  background-color: rgb(64, 70, 104);
+  color: #fff;
+  font-weight: bold;
+  border: none;
+  padding:8px;
+  cursor: pointer;
+  box-shadow: 1px 1px 2px #222;
+}
+#call_video_btn:hover{
+  background-color: rgb(91, 98, 137);
+}
+#video_url_input{
+  min-width: 600px;
+  padding: 8px;
+  font-size: 14px;
+  border: 1px solid #aaa;
+  box-shadow: 1px 1px 2px #666;
+}
+
+</style>

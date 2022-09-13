@@ -139,6 +139,9 @@ class Converter:
     )
 
     #--------------
+    self.progress_perc = None
+
+    #--------------
     self.create_rabbitmq_connection()
     self.create_minio_cli()
     self.check_minio_bucket()
@@ -355,7 +358,10 @@ class Converter:
     #   (percentage_done, time_left_str, '#' * percentage_done, '-' * (100 - percentage_done))      
     # )
     # sys.stdout.flush()
-    print("Transcoding... (done: "+str(percentage_done)+" %)", end="\r")
+
+    if self.progress_perc != percentage_done:
+      self.progress_perc = percentage_done
+      print("Transcoding... (done: "+str(percentage_done)+" %)")
 
 
   #---------------------------

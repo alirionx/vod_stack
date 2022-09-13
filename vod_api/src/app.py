@@ -11,7 +11,7 @@ import uvicorn
 from fastapi import FastAPI, Request, HTTPException, UploadFile, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import status as HTTPStatus
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse 
 
 # from fastapi.staticfiles import StaticFiles
 # from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
@@ -131,6 +131,13 @@ async def api_streaming_put(id:uuid.UUID):
 
   stream_mgmt.delete_streaming(id=str(id))
   return id
+
+#--------------------------------------------
+@app.get("/player", tags=["streamings"])
+async def api_streamings_player_get():
+  cur_dir = os.path.dirname(os.path.realpath(__file__))
+  cur_path = os.path.join(cur_dir, 'player.html')
+  return FileResponse(cur_path)
 
 #--------------------------------------------
 # @app.get("/stream/{id}/{filename}", tags=["stream"])
