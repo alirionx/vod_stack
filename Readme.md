@@ -37,4 +37,4 @@ docker run -d \
   -v couchdb_data:/opt/couchdb/data \
   -e COUCHDB_USER=couchdb \
   -e COUCHDB_PASSWORD=VERYSECRET \
-  couchdb:latest
+  couchdb

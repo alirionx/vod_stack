@@ -75,7 +75,7 @@ async def startup_event():
 @app.get("/", tags=["root"], response_model=TestModel)
 async def api_root():
   data = {
-    "message": "Hello from the API",
+    "message": "Hello from the MEDIA_API",
     "timestamp": int(time.time())
   }
   return data

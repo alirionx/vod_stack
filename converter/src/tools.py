@@ -49,8 +49,8 @@ class JobWorker:
   def on_job_receive(self, ch, method, properties, body):
     #----------
     item = json.loads( body.decode() )
-    item["delivery_tag"] = method.delivery_tag
-    item["routing_key"] = method.routing_key
+    # item["delivery_tag"] = method.delivery_tag
+    # item["routing_key"] = method.routing_key
     print(item)
 
     #----------
@@ -296,7 +296,7 @@ class Converter:
 
     #----------
     video = ffmpeg_streaming.input(self.media_tmp_path)
-    hls = video.hls(ffmpeg_streaming.Formats.h264())
+    hls = video.dash(ffmpeg_streaming.Formats.h264())
     # hls.auto_generate_representations()
     hls.representations(self._480p, self._720p, self._1080p)
 

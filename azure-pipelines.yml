@@ -7,34 +7,42 @@ pool:
 variables:
   containerRegistryName: itarchinnolab
 
+parameters:
+  - name: docker_images
+    type: object
+    default:
+      - media_api
+      - vod_api
+
 steps:
 #----------------------------------
-- script: |
-    apt update && apt install python3-pip -y
-    pip install -r ./requirements.txt
-    pip install pyinstaller
-    pyinstaller --onefile --name media_api_exec media_api/src/app.py
-  displayName: 'media_api build python executable (one-file)'
+- ${{ each docker_image in parameters.docker_images }}:
+  - script: |
+      apt update && apt install python3-pip -y
+      pip install -r ./requirements.txt
+      pip install pyinstaller
+      pyinstaller --onefile --name ${{ docker_image }}_exec ${{ docker_image }}/src/app.py
+    displayName: '${{ docker_image }}: build python executable (one-file)'
 
-- task: PublishBuildArtifacts@1
-  inputs:
-    pathToPublish: './media_api_exec'
-    artifactName: media_api_exec
-  displayName: 'publish media_api executable as artifact'
+  - task: PublishBuildArtifacts@1
+    inputs:
+      pathToPublish: ./${{ docker_image }}_exec
+      artifactName: ${{ docker_image }}_exec
+    displayName: 'publish ${{ docker_image }} executable as artifact'
 
 #----------------------------------
-- script: |
-    apt update && apt install python3-pip -y
-    pip install -r ./requirements.txt
-    pip install pyinstaller
-    pyinstaller --onefile --name media_api_exec vod_api/src/app.py
-  displayName: 'vod_api build python executable (one-file)'
+# - script: |
+#     apt update && apt install python3-pip -y
+#     pip install -r ./requirements.txt
+#     pip install pyinstaller
+#     pyinstaller --onefile --name vod_api_exec vod_api/src/app.py
+#   displayName: 'vod_api build python executable (one-file)'
 
-- task: PublishBuildArtifacts@1
-  inputs:
-    pathToPublish: './vod_api_exec'
-    artifactName: vod_api_exec
-  displayName: 'publish vod_api executable as artifact'
+# - task: PublishBuildArtifacts@1
+#   inputs:
+#     pathToPublish: './vod_api_exec'
+#     artifactName: vod_api_exec
+#   displayName: 'publish vod_api executable as artifact'
 
 #----------------------------------
 - task: Docker@2
@@ -43,22 +51,23 @@ steps:
     command: login
     containerRegistry: $(containerRegistryName)
 
-- task: Docker@2
-  displayName: Build docker image media_api (latest master)
-  inputs:
-    repository: vod_stack/media_api
-    command: buildAndPush
-    Dockerfile: ./media_api/Dockerfile
-    containerRegistry: $(containerRegistryName)
-    tags: latest
+- ${{ each docker_image in parameters.docker_images }}:
+  - task: Docker@2
+    displayName: Build docker image ${{ docker_image }} (latest master)
+    inputs:
+      repository: vod_stack/${{ docker_image }}
+      command: buildAndPush
+      Dockerfile: ./${{ docker_image }}/Dockerfile
+      containerRegistry: $(containerRegistryName)
+      tags: latest
 
-- task: Docker@2
-  displayName: Build docker image vod_api (latest master)
-  inputs:
-    repository: vod_stack/vod_api
-    command: buildAndPush
-    Dockerfile: ./vod_api/Dockerfile
-    containerRegistry: $(containerRegistryName)
-    tags: latest
+# - task: Docker@2
+#   displayName: Build docker image vod_api (latest master)
+#   inputs:
+#     repository: vod_stack/vod_api
+#     command: buildAndPush
+#     Dockerfile: ./vod_api/Dockerfile
+#     containerRegistry: $(containerRegistryName)
+#     tags: latest
     
 #----------------------------------
