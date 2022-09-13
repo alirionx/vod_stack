@@ -97,12 +97,20 @@ class JobHandler:
 
   #---------------------------
   def create_rabbitmq_connection(self):
-    self.rabbitmq_connection = pika.BlockingConnection(
-      pika.ConnectionParameters(
-        host = app_settings.rabbitmq_host,
-        port = app_settings.rabbitmq_port,
-        credentials=self.credentials
-      ))
+    
+    if app_settings.rabbitmq_noauth:
+      self.rabbitmq_connection = pika.BlockingConnection(
+        pika.ConnectionParameters(
+          host = app_settings.rabbitmq_host,
+          port = app_settings.rabbitmq_port
+        ))
+    else:
+      self.rabbitmq_connection = pika.BlockingConnection(
+        pika.ConnectionParameters(
+          host = app_settings.rabbitmq_host,
+          port = app_settings.rabbitmq_port,
+          credentials=self.credentials
+        ))
 
   #---------------------------
   def send_job_to_queue(self, payload:str):

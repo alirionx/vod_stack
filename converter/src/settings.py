@@ -8,6 +8,7 @@ MINIO_TRANSFER_BUCKET = "vod-upload"
 MINIO_STREAMING_BUCKET = "vod-streaming"
 RABBITMQ_HOST = "localhost"
 RABBITMQ_PORT = 5672
+RABBITMQ_NOAUTH = False
 RABBITMQ_USER = "rabbitmq"
 RABBITMQ_PASSWORD = "VERYSECRET"
 RABBITMQ_JOB_QUEUE = "jobs"
@@ -29,10 +30,11 @@ class SettingsModel(BaseModel):
   minio_streaming_bucket: str | None = MINIO_STREAMING_BUCKET
   rabbitmq_host: str | None = RABBITMQ_HOST
   rabbitmq_port: int | None = RABBITMQ_PORT
+  rabbitmq_noauth: bool | None = RABBITMQ_NOAUTH
   rabbitmq_user: str | None = RABBITMQ_USER
-  rabbitmq_password: int | None = RABBITMQ_PASSWORD
-  rabbitmq_job_queue: int | None = RABBITMQ_JOB_QUEUE
-  rabbitmq_status_queue: int | None = RABBITMQ_STATUS_QUEUE
+  rabbitmq_password: str | None = RABBITMQ_PASSWORD
+  rabbitmq_job_queue: str | None = RABBITMQ_JOB_QUEUE
+  rabbitmq_status_queue: str | None = RABBITMQ_STATUS_QUEUE
   job_temp_dir:str | None = JOB_TEMP_DIR
 
 #------------------------------------------------

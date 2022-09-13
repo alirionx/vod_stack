@@ -1,0 +1,78 @@
+version: "3.9"
+services:
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniovol:/data
+    command: minio server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=minio
+      - MINIO_ROOT_PASSWORD=VERYSECRET
+  
+  rabbitmq:
+    # image: rabbitmq:3-management
+    image: rabbitmq
+    ports:
+      - "5672:5672"
+      # - "15672:15672"
+    # environment:
+    #   - RABBITMQ_DEFAULT_USER=guest
+    #   - RABBITMQ_DEFAULT_PASS=VERYSECRET
+    
+  couchdb:
+    image: couchdb:latest
+    ports:
+      - "5984:5984"
+    volumes:
+      - couchdbvol:/opt/couchdb/data
+    environment:
+      - COUCHDB_USER=couchdb
+      - COUCHDB_PASSWORD=VERYSECRET
+  
+  media_api:
+    build: ./media_api/
+    ports:
+      - "5000:5000"
+    environment:
+      - MINIO_HOST=minio
+      - MINIO_USER=minio
+      - MINIO_PASSWORD=VERYSECRET
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_NOAUTH=True
+      # - RABBITMQ_USER=rabbitmq
+      # - RABBITMQ_PASSWORD=VERYSECRET
+  
+  converter:
+    build: ./converter/
+    depends_on:
+      - rabbitmq
+    
+    environment:
+      - MINIO_HOST=minio
+      - MINIO_USER=minio
+      - MINIO_PASSWORD=VERYSECRET
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_NOAUTH=True
+      # - RABBITMQ_USER=rabbitmq
+      # - RABBITMQ_PASSWORD=VERYSECRET
+  
+  vod_api:
+    build: ./vod_api/
+    ports:
+      - "5001:5001"
+    environment:
+      - MINIO_HOST=minio
+      - MINIO_USER=minio
+      - MINIO_PASSWORD=VERYSECRET
+      - COUCHDB_HOST=couchdb
+      - COUCHDB_USER=couchdb
+      - COUCHDB_PASSWORD=VERYSECRET
+      - S3_STREAMING_ENDPOINT=http://localhost:9000
+
+
+volumes:
+  miniovol: {}
+  couchdbvol: {}

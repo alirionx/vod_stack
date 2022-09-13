@@ -1,4 +1,3 @@
-from ast import arg
 import os
 import sys
 import shutil
@@ -32,18 +31,37 @@ class JobWorker:
       password = app_settings.rabbitmq_password
     )
 
-    self.create_rabbitmq_connection()
-
+    #----------------
     shutil.rmtree(app_settings.job_temp_dir, ignore_errors=True)
 
+    #----------------
+    self.con_re_attempts = 3
+    for i in range(self.con_re_attempts-1):
+      try:
+        self.create_rabbitmq_connection()
+        break
+      except:
+        time.sleep(10)
+        print("Faild to connect to message bus (attempt %s of %s)" %(i+1, self.con_re_attempts))
+        if i == self.con_re_attempts-1:
+          raise Exception("Faild to connect to message bus")
+    
   #-------------------------------
   def create_rabbitmq_connection(self):
-    self.rabbitmq_connection = pika.BlockingConnection(
-      pika.ConnectionParameters(
-        host = app_settings.rabbitmq_host,
-        port = app_settings.rabbitmq_port,
-        credentials=self.credentials
-      ))
+    
+    if app_settings.rabbitmq_noauth:
+      self.rabbitmq_connection = pika.BlockingConnection(
+        pika.ConnectionParameters(
+          host = app_settings.rabbitmq_host,
+          port = app_settings.rabbitmq_port
+        ))
+    else:
+      self.rabbitmq_connection = pika.BlockingConnection(
+        pika.ConnectionParameters(
+          host = app_settings.rabbitmq_host,
+          port = app_settings.rabbitmq_port,
+          credentials=self.credentials
+        ))
 
   #-------------------------------
   def on_job_receive(self, ch, method, properties, body):
@@ -132,12 +150,19 @@ class Converter:
   
   #-------------------------------
   def create_rabbitmq_connection(self):
-    self.rabbitmq_connection = pika.BlockingConnection(
-      pika.ConnectionParameters(
-        host = app_settings.rabbitmq_host,
-        port = app_settings.rabbitmq_port,
-        credentials=self.credentials
-      ))
+    if app_settings.rabbitmq_noauth:
+      self.rabbitmq_connection = pika.BlockingConnection(
+        pika.ConnectionParameters(
+          host = app_settings.rabbitmq_host,
+          port = app_settings.rabbitmq_port
+        ))
+    else:
+      self.rabbitmq_connection = pika.BlockingConnection(
+        pika.ConnectionParameters(
+          host = app_settings.rabbitmq_host,
+          port = app_settings.rabbitmq_port,
+          credentials=self.credentials
+        ))
 
   #---------------------------
   def create_minio_cli(self):
@@ -296,7 +321,7 @@ class Converter:
 
     #----------
     video = ffmpeg_streaming.input(self.media_tmp_path)
-    hls = video.dash(ffmpeg_streaming.Formats.h264())
+    hls = video.dash(ffmpeg_streaming.Formats.h264(video = "libx264", audio = 'aac', **{"ac":2}))
     # hls.auto_generate_representations()
     hls.representations(self._480p, self._720p, self._1080p)
 
@@ -325,11 +350,12 @@ class Converter:
     }
     self.publish_stats(payload=status_payload)
 
-    sys.stdout.write(
-      "\rTranscoding...(%s%%) %s left [%s%s]" %
-      (percentage_done, time_left_str, '#' * percentage_done, '-' * (100 - percentage_done))
-    )
-    sys.stdout.flush()
+    # sys.stdout.write(
+    #   "\rTranscoding...(%s%%) %s left [%s%s]" %
+    #   (percentage_done, time_left_str, '#' * percentage_done, '-' * (100 - percentage_done))      
+    # )
+    # sys.stdout.flush()
+    print("Transcoding... (done: "+str(percentage_done)+" %)", end="\r")
 
 
   #---------------------------
