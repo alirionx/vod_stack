@@ -5,7 +5,7 @@ pool:
   vmImage: ubuntu-22.04
 
 variables:
-  containerRegistryName: itarchinnolab
+  containerRegistryName: dockerreg_akseval
 
 parameters:
   - name: docker_images
@@ -27,7 +27,7 @@ steps:
 
   - task: PublishBuildArtifacts@1
     inputs:
-      pathToPublish: ./${{ docker_image }}_exec
+      pathToPublish: ./dist/${{ docker_image }}_exec
       artifactName: ${{ docker_image }}_exec
     displayName: 'publish ${{ docker_image }} executable as artifact'
 
