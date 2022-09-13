@@ -12,6 +12,7 @@ parameters:
     type: object
     default:
       - media_api
+      - converter
       - vod_api
 
 steps:
@@ -44,22 +45,25 @@ steps:
 #     artifactName: vod_api_exec
 #   displayName: 'publish vod_api executable as artifact'
 
-#----------------------------------
-- task: Docker@2
-  displayName: Login to ACR
-  inputs:
-    command: login
-    containerRegistry: $(containerRegistryName)
 
-- ${{ each docker_image in parameters.docker_images }}:
-  - task: Docker@2
-    displayName: Build docker image ${{ docker_image }} (latest master)
-    inputs:
-      repository: vod_stack/${{ docker_image }}
-      command: buildAndPush
-      Dockerfile: ./${{ docker_image }}/Dockerfile
-      containerRegistry: $(containerRegistryName)
-      tags: latest
+#----------------------------------
+# - task: Docker@2
+#   displayName: Login to ACR
+#   inputs:
+#     command: login
+#     containerRegistry: $(containerRegistryName)
+
+# - ${{ each docker_image in parameters.docker_images }}:
+#   - task: Docker@2
+#     displayName: Build docker image ${{ docker_image }} (latest master)
+#     inputs:
+#       repository: vod_stack/${{ docker_image }}
+#       command: buildAndPush
+#       Dockerfile: ./${{ docker_image }}/Dockerfile
+#       containerRegistry: $(containerRegistryName)
+#       tags: latest
+
+
 
 # - task: Docker@2
 #   displayName: Build docker image vod_api (latest master)
