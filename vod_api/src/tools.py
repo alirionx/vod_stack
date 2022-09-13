@@ -42,7 +42,7 @@ class StreamMgmt:
 
     #----------
     self.create_minio_cli()
-    # self.check_minio_bucket()
+    self.check_minio_bucket()
 
     self.create_couchdb_cli()
 

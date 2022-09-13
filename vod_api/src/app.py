@@ -22,7 +22,7 @@ from tools import StreamMgmt #, StreamServ
 
 #-App Globals--------------------------------------------------
 # stream_serve = StreamServ()
-stream_mgmt = StreamMgmt()
+# stream_mgmt = StreamMgmt()
 
 #-Models-------------------------------------------------------
 class StreamingsModel(BaseModel):
@@ -64,8 +64,20 @@ async def api_root():
 #--------------------------------------------
 @app.get("/streamings", tags=["streamings"] )
 async def api_streamings_get():
+  #-----------
+  try:
+    stream_mgmt = StreamMgmt()
+  except Exception as e:
+    raise HTTPException(
+      status_code=HTTPStatus.HTTP_500_INTERNAL_SERVER_ERROR,
+      detail="Something went wrong: '%s' not found" %e
+    )
+
+  #-----------
+  stream_mgmt.sync_bucket_with_db()
   stream_mgmt.get_docs_from_db()
 
+  #-----------
   res = []
   for item in stream_mgmt.docs_list:
     new_item = item.copy()
@@ -81,7 +93,7 @@ async def api_streamings_get():
 #--------------------------------------------
 @app.get("/streamings/{id}", tags=["streamings"], response_model=StreamingsModel)
 async def api_streaming_get(id:uuid.UUID):
-  
+  stream_mgmt = StreamMgmt()
   if str(id) not in stream_mgmt.couchdb_cli:
     raise HTTPException(
       status_code=HTTPStatus.HTTP_404_NOT_FOUND,
@@ -94,7 +106,7 @@ async def api_streaming_get(id:uuid.UUID):
 #--------------------------------------------
 @app.put("/streamings/{id}", tags=["streamings"])
 async def api_streaming_put(id:uuid.UUID, item:StreamingsModel):
-  
+  stream_mgmt = StreamMgmt()
   if str(id) not in stream_mgmt.couchdb_cli:
     raise HTTPException(
       status_code=HTTPStatus.HTTP_404_NOT_FOUND,
@@ -110,7 +122,7 @@ async def api_streaming_put(id:uuid.UUID, item:StreamingsModel):
 #--------------------------------------------
 @app.delete("/streamings/{id}", tags=["streamings"])
 async def api_streaming_put(id:uuid.UUID):
-  
+  stream_mgmt = StreamMgmt()
   if str(id) not in stream_mgmt.couchdb_cli:
     raise HTTPException(
       status_code=HTTPStatus.HTTP_404_NOT_FOUND,
@@ -153,6 +165,7 @@ def bucket_db_sync_fw_func():
   while True:
     print( "bucket_db_sync: %s" %int( time.time()) )
     try:
+      stream_mgmt = StreamMgmt()
       stream_mgmt.sync_bucket_with_db()
     except Exception as e:
       print(e)
@@ -161,8 +174,8 @@ def bucket_db_sync_fw_func():
 #-The Runner---------------------------------------------------------
 if __name__ == "__main__":
 
-  th = Thread(target=bucket_db_sync_fw_func, daemon=True)
-  th.start()
+  # th = Thread(target=bucket_db_sync_fw_func, daemon=True)
+  # th.start()
 
   if "dev".lower() in sys.argv:
     print("Dev Mode")
