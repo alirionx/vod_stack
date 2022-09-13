@@ -1,0 +1,155 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vod-stack
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: stack-secrets
+  namespace: vod-stack
+type: Opaque
+data:
+  MINIO_PASSWORD: "VkVSWVNFQ1JFVA=="
+  RABBITMQ_PASSWORD: "VkVSWVNFQ1JFVA=="
+  COUCHDB_PASSWORD: "VkVSWVNFQ1JFVA=="
+  
+
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: stack-config
+  namespace: vod-stack
+data:
+  APP_PORT: "5000"
+  MINIO_HOST: "minio-srv"
+  MINIO_PORT: "9000"
+  MINIO_USER: "minio"
+  MINIO_TRANSFER_BUCKET: "vod-upload"
+  MINIO_STREAMING_BUCKET: "vod-streaming"
+  RABBITMQ_HOST: "rabbitmq-srv"
+  RABBITMQ_PORT: "5672"
+  RABBITMQ_NOAUTH: "False"
+  RABBITMQ_USER: "rabbitmq"
+  RABBITMQ_JOB_QUEUE: "jobs"
+  RABBITMQ_STATUS_QUEUE: "status"
+  COUCHDB_HOST: "couchdb-srv"
+  COUCHDB_PORT: "5984"
+  COUCHDB_USER: "couchdb"
+  COUCHDB_DATABASE: "vod"
+  JOB_TEMP_DIR: "./tmp"
+  S3_STREAMING_ENDPOINT: "http://localhost:9000"
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: minio-pvc
+  namespace: vod-stack
+spec:
+  storageClassName: default
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "minio"
+  namespace: vod-stack
+  labels:
+    app: "minio"
+spec:
+  containers:
+  - name: minio
+    image: "minio/minio:latest"
+    args:
+    - server
+    - /data
+    - --console-address 
+    - :9001
+    env:
+    - name: MINIO_ACCESS_KEY
+      valueFrom:
+        configMapKeyRef:
+          name: stack-config
+          key: MINIO_USER
+    - name: MINIO_SECRET_KEY
+      valueFrom:
+        secretKeyRef:
+          name: stack-secrets
+          key: MINIO_PASSWORD
+    ports:
+    - containerPort: 9000
+      name: minio-api
+    - containerPort: 9001
+      name: minio-webui
+    volumeMounts:
+    - name: minio-vol
+      mountPath: /data
+     
+  volumes:
+    - name: minio-vol
+      persistentVolumeClaim:
+        claimName: minio-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio-srv
+  namespace: vod-stack
+spec:
+  selector:
+    app: minio
+  type: ClusterIP
+  ports:
+  - name: minio-api
+    protocol: TCP
+    port: 9000
+    targetPort: 9000 
+  - name: minio-webui
+    protocol: TCP
+    port: 9001
+    targetPort: 9001
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "rabbitmq"
+  namespace: vod-stack
+  labels:
+    app: "rabbitmq"
+spec:
+  containers:
+  - name: rabbitmq
+    image: "rabbitmq"
+    ports:
+    - containerPort: 5672
+      name: rabbitmq-api
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-srv
+  namespace: vod-stack
+spec:
+  selector:
+    app: rabbitmq
+  type: ClusterIP
+  ports:
+  - name: rabbitmq-api
+    protocol: TCP
+    port: 5672
+    targetPort: 5672 
+
+---
+
+
