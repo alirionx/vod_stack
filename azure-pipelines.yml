@@ -20,7 +20,7 @@ steps:
 - ${{ each docker_image in parameters.docker_images }}:
   - script: |
       apt update && apt install python3-pip -y
-      pip3 install -r ./requirements.txt
+      pip3 install -r ./${{ docker_image }}/requirements.txt
       pip3 install pyinstaller
       pyinstaller --onefile --name ${{ docker_image }}_exec ${{ docker_image }}/src/app.py
     displayName: '${{ docker_image }}: build python executable (one-file)'
