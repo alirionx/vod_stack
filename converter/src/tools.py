@@ -53,14 +53,16 @@ class JobWorker:
       self.rabbitmq_connection = pika.BlockingConnection(
         pika.ConnectionParameters(
           host = app_settings.rabbitmq_host,
-          port = app_settings.rabbitmq_port
+          port = app_settings.rabbitmq_port,
+          heartbeat = 0
         ))
     else:
       self.rabbitmq_connection = pika.BlockingConnection(
         pika.ConnectionParameters(
           host = app_settings.rabbitmq_host,
           port = app_settings.rabbitmq_port,
-          credentials=self.credentials
+          credentials=self.credentials,
+          heartbeat = 0
         ))
 
   #-------------------------------
@@ -94,7 +96,7 @@ class JobWorker:
   #-------------------------------
   def start_consuming_jobs(self):
     ch = self.rabbitmq_connection.channel()
-    qu = ch.queue_declare(queue=self.job_queue, durable=True)
+    qu = ch.queue_declare(queue=self.job_queue)
     ch.basic_consume(
       queue = self.job_queue, 
       on_message_callback = self.on_job_receive, 
@@ -157,14 +159,16 @@ class Converter:
       self.rabbitmq_connection = pika.BlockingConnection(
         pika.ConnectionParameters(
           host = app_settings.rabbitmq_host,
-          port = app_settings.rabbitmq_port
+          port = app_settings.rabbitmq_port,
+          heartbeat = 0
         ))
     else:
       self.rabbitmq_connection = pika.BlockingConnection(
         pika.ConnectionParameters(
           host = app_settings.rabbitmq_host,
           port = app_settings.rabbitmq_port,
-          credentials=self.credentials
+          credentials=self.credentials,
+          heartbeat = 0
         ))
 
   #---------------------------

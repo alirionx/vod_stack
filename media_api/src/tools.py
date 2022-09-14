@@ -102,22 +102,23 @@ class JobHandler:
       self.rabbitmq_connection = pika.BlockingConnection(
         pika.ConnectionParameters(
           host = app_settings.rabbitmq_host,
-          port = app_settings.rabbitmq_port
+          port = app_settings.rabbitmq_port,
+          heartbeat = 0
         ))
     else:
       self.rabbitmq_connection = pika.BlockingConnection(
         pika.ConnectionParameters(
           host = app_settings.rabbitmq_host,
           port = app_settings.rabbitmq_port,
-          credentials=self.credentials
+          credentials=self.credentials,
+          heartbeat = 0
         ))
 
   #---------------------------
   def send_job_to_queue(self, payload:str):
     ch = self.rabbitmq_connection.channel()
     qu = ch.queue_declare(
-      queue=self.job_queue,
-      durable=True
+      queue=self.job_queue
     )
 
     ch.basic_publish(
@@ -149,7 +150,7 @@ class JobHandler:
 
     #-------------
     ch = self.rabbitmq_connection.channel()
-    qu = ch.queue_declare(queue=self.job_queue, durable=True)
+    qu = ch.queue_declare(queue=self.job_queue)
     ch.basic_consume(on_message_callback=on_message, queue=self.job_queue)
     
     #-------------
@@ -224,7 +225,11 @@ class JobHandler:
   #---------------------------
   def close_connection_and_cleanup(self):
     if self.rabbitmq_connection:
-      self.rabbitmq_connection.close()
+      try:
+        self.rabbitmq_connection.close()
+      except Exception as e:
+        print(e)
+
       self.rabbitmq_connection = None
     
   #---------------------------

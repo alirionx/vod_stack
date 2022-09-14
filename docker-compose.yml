@@ -45,6 +45,7 @@ services:
       # - RABBITMQ_USER=rabbitmq
       # - RABBITMQ_PASSWORD=VERYSECRET
   
+  
   converter:
     build: ./converter/
     depends_on:
@@ -59,6 +60,19 @@ services:
       # - RABBITMQ_USER=rabbitmq
       # - RABBITMQ_PASSWORD=VERYSECRET
   
+  converter2:
+    build: ./converter/
+    depends_on:
+      - rabbitmq
+    
+    environment:
+      - MINIO_HOST=minio
+      - MINIO_USER=minio
+      - MINIO_PASSWORD=VERYSECRET
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_NOAUTH=True
+
+
   vod_api:
     build: ./vod_api/
     ports:

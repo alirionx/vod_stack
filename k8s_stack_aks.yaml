@@ -150,6 +150,7 @@ spec:
   selector:
     app: rabbitmq
   type: ClusterIP
+  sessionAffinity: ClientIP
   ports:
   - name: rabbitmq-api
     protocol: TCP
@@ -257,6 +258,7 @@ spec:
       containers:
       - name:  media-api
         image:  akseval.azurecr.io/vod_stack/media_api:latest
+        imagePullPolicy: Always
         livenessProbe:
           tcpSocket:
             port: 5000
@@ -328,11 +330,11 @@ spec:
   selector:
     matchLabels:
       app: converter
-  replicas: 4
+  replicas: 2
   strategy:
     rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 25%
+      maxSurge: 50%
+      maxUnavailable: 50%
     type: RollingUpdate
   template:
     metadata:
@@ -342,6 +344,7 @@ spec:
       containers:
       - name:  converter
         image:  akseval.azurecr.io/vod_stack/converter:latest
+        imagePullPolicy: Always
         env:
         - name: MINIO_HOST
           valueFrom:
@@ -400,6 +403,7 @@ spec:
       containers:
       - name:  vod-api
         image:  akseval.azurecr.io/vod_stack/vod_api:latest
+        imagePullPolicy: Always
         livenessProbe:
           tcpSocket:
             port: 5001
