@@ -15,7 +15,6 @@ data:
   RABBITMQ_PASSWORD: "VkVSWVNFQ1JFVA=="
   COUCHDB_PASSWORD: "VkVSWVNFQ1JFVA=="
   
-
 ---
 kind: ConfigMap
 apiVersion: v1
@@ -24,14 +23,14 @@ metadata:
   namespace: vod-stack
 data:
   APP_PORT: "5000"
-  MINIO_HOST: "minio-srv"
+  MINIO_HOST: "minio"
   MINIO_PORT: "9000"
   MINIO_USER: "minio"
   MINIO_TRANSFER_BUCKET: "vod-upload"
   MINIO_STREAMING_BUCKET: "vod-streaming"
   RABBITMQ_HOST: "rabbitmq-srv"
   RABBITMQ_PORT: "5672"
-  RABBITMQ_NOAUTH: "False"
+  RABBITMQ_NOAUTH: "True"
   RABBITMQ_USER: "rabbitmq"
   RABBITMQ_JOB_QUEUE: "jobs"
   RABBITMQ_STATUS_QUEUE: "status"
@@ -42,81 +41,88 @@ data:
   JOB_TEMP_DIR: "./tmp"
   S3_STREAMING_ENDPOINT: "http://localhost:9000"
 
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: minio-pvc
-  namespace: vod-stack
-spec:
-  storageClassName: default
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 10Gi
 
----
-apiVersion: v1
-kind: Pod
-metadata:
-  name: "minio"
-  namespace: vod-stack
-  labels:
-    app: "minio"
-spec:
-  containers:
-  - name: minio
-    image: "minio/minio:latest"
-    args:
-    - server
-    - /data
-    - --console-address 
-    - :9001
-    env:
-    - name: MINIO_ACCESS_KEY
-      valueFrom:
-        configMapKeyRef:
-          name: stack-config
-          key: MINIO_USER
-    - name: MINIO_SECRET_KEY
-      valueFrom:
-        secretKeyRef:
-          name: stack-secrets
-          key: MINIO_PASSWORD
-    ports:
-    - containerPort: 9000
-      name: minio-api
-    - containerPort: 9001
-      name: minio-webui
-    volumeMounts:
-    - name: minio-vol
-      mountPath: /data
-     
-  volumes:
-    - name: minio-vol
-      persistentVolumeClaim:
-        claimName: minio-pvc
+#------------------------------------------------------------------------------------
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: minio-srv
   namespace: vod-stack
+  name: minio
+  labels:
+    app: minio
 spec:
+  clusterIP: None
+  ports:
+  - port: 9000
+    name: minio-api
+  - port: 9001
+    name: minio-webui
   selector:
     app: minio
-  type: ClusterIP
-  ports:
-  - name: minio-api
-    protocol: TCP
-    port: 9000
-    targetPort: 9000 
-  - name: minio-webui
-    protocol: TCP
-    port: 9001
-    targetPort: 9001
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  namespace: vod-stack 
+  name: minio
+  labels:
+    app: minio
+spec:
+  serviceName: minio
+  replicas: 3
+  selector:
+    matchLabels:
+      app: minio
+  template:
+    metadata:
+      labels:
+        app: minio
+    spec:
+      containers:
+      - name: minio
+        env:
+        - name: MINIO_ACCESS_KEY
+          valueFrom:
+            configMapKeyRef:
+              name: stack-config
+              key: MINIO_USER
+        - name: MINIO_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: stack-secrets
+              key: MINIO_PASSWORD
+        image: minio/minio:latest
+        args:
+        - server
+        - http://minio-0.minio.vod-stack.svc.cluster.local/data
+        - http://minio-1.minio.vod-stack.svc.cluster.local/data
+        - http://minio-2.minio.vod-stack.svc.cluster.local/data
+        - --console-address 
+        - :9001
+        ports:
+        - containerPort: 9000
+          name: minio-api
+        - containerPort: 9001
+          name: minio-webui
+        volumeMounts:
+        - name: minio-data
+          mountPath: /data
+  volumeClaimTemplates:
+  - metadata:
+      name: minio-data
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      storageClassName: default
+      resources:
+        requests:
+          storage: 10Gi
+
+
+#------------------------------------------------------------------------------------
 
 ---
 apiVersion: v1
@@ -150,6 +156,321 @@ spec:
     port: 5672
     targetPort: 5672 
 
+
+#------------------------------------------------------------------------------------
+
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: couchdb-pvc
+  namespace: vod-stack
+spec:
+  storageClassName: default
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "couchdb"
+  namespace: vod-stack
+  labels:
+    app: "couchdb"
+spec:
+  containers:
+  - name: couchdb
+    image: "couchdb:latest"
+    env:
+    - name: COUCHDB_USER
+      valueFrom:
+        configMapKeyRef:
+          name: stack-config
+          key: COUCHDB_USER
+    - name: COUCHDB_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: stack-secrets
+          key: COUCHDB_PASSWORD
+    ports:
+    - containerPort: 5984
+      name: couchdb-api
+    volumeMounts:
+    - name: couchdb-vol
+      mountPath: /opt/couchdb/data
+     
+  volumes:
+    - name: couchdb-vol
+      persistentVolumeClaim:
+        claimName: couchdb-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: couchdb-srv
+  namespace: vod-stack
+spec:
+  selector:
+    app: couchdb
+  type: ClusterIP
+  ports:
+  - name: couchdb-api
+    protocol: TCP
+    port: 5984
+    targetPort: 5984 
+
 ---
 
 
+#------------------------------------------------------------------------------------
+
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: media-api
+  namespace: vod-stack
+  labels:
+    app:  media-api
+spec:
+  selector:
+    matchLabels:
+      app: media-api
+  replicas: 4
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app:  media-api
+    spec:
+      containers:
+      - name:  media-api
+        image:  akseval.azurecr.io/vod_stack/media_api:latest
+        livenessProbe:
+          tcpSocket:
+            port: 5000
+          initialDelaySeconds: 5
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+          periodSeconds: 10
+        env:
+        - name: MINIO_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: stack-config
+              key: MINIO_HOST
+        - name: MINIO_USER
+          valueFrom:
+            configMapKeyRef:
+              name: stack-config
+              key: MINIO_USER
+        - name: MINIO_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: stack-secrets
+              key: MINIO_PASSWORD
+        - name: RABBITMQ_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: stack-config
+              key: RABBITMQ_HOST
+        - name: RABBITMQ_NOAUTH
+          valueFrom:
+            configMapKeyRef:
+              name: stack-config
+              key: RABBITMQ_NOAUTH
+        ports:
+        - containerPort:  5000
+          name:  media-api
+      restartPolicy: Always
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: media-api-srv
+  namespace: vod-stack
+spec:
+  selector:
+    app: media-api
+  type: ClusterIP
+  ports:
+  - name: media-api
+    protocol: TCP
+    port: 5000
+    targetPort: 5000 
+
+
+#------------------------------------------------------------------------------------
+
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: converter
+  namespace: vod-stack
+  labels:
+    app:  converter
+spec:
+  selector:
+    matchLabels:
+      app: converter
+  replicas: 4
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: converter
+    spec:
+      containers:
+      - name:  converter
+        image:  akseval.azurecr.io/vod_stack/converter:latest
+        env:
+        - name: MINIO_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: stack-config
+              key: MINIO_HOST
+        - name: MINIO_USER
+          valueFrom:
+            configMapKeyRef:
+              name: stack-config
+              key: MINIO_USER
+        - name: MINIO_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: stack-secrets
+              key: MINIO_PASSWORD
+        - name: RABBITMQ_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: stack-config
+              key: RABBITMQ_HOST
+        - name: RABBITMQ_NOAUTH
+          valueFrom:
+            configMapKeyRef:
+              name: stack-config
+              key: RABBITMQ_NOAUTH
+      restartPolicy: Always
+
+
+#------------------------------------------------------------------------------------
+
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vod-api
+  namespace: vod-stack
+  labels:
+    app:  vod-api
+spec:
+  selector:
+    matchLabels:
+      app: vod-api
+  replicas: 4
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app:  vod-api
+    spec:
+      containers:
+      - name:  vod-api
+        image:  akseval.azurecr.io/vod_stack/vod_api:latest
+        livenessProbe:
+          tcpSocket:
+            port: 5001
+          initialDelaySeconds: 5
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+          periodSeconds: 10
+        env:
+        - name: MINIO_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: stack-config
+              key: MINIO_HOST
+        - name: MINIO_USER
+          valueFrom:
+            configMapKeyRef:
+              name: stack-config
+              key: MINIO_USER
+        - name: MINIO_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: stack-secrets
+              key: MINIO_PASSWORD
+        - name: RABBITMQ_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: stack-config
+              key: RABBITMQ_HOST
+        - name: RABBITMQ_NOAUTH
+          valueFrom:
+            configMapKeyRef:
+              name: stack-config
+              key: RABBITMQ_NOAUTH
+        - name: COUCHDB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: stack-config
+              key: COUCHDB_HOST
+        - name: COUCHDB_USER
+          valueFrom:
+            configMapKeyRef:
+              name: stack-config
+              key: COUCHDB_USER
+        - name: COUCHDB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: stack-secrets
+              key: COUCHDB_PASSWORD
+        - name: S3_STREAMING_ENDPOINT
+          valueFrom:
+            configMapKeyRef:
+              name: stack-config
+              key: S3_STREAMING_ENDPOINT
+        ports:
+        - containerPort:  5001
+          name:  vod-api
+      restartPolicy: Always
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vod-api-srv
+  namespace: vod-stack
+spec:
+  selector:
+    app: vod-api
+  type: ClusterIP
+  ports:
+  - name: vod-api
+    protocol: TCP
+    port: 5001
+    targetPort: 5001 
