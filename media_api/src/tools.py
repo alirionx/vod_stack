@@ -151,7 +151,7 @@ class JobHandler:
     #-------------
     ch = self.rabbitmq_connection.channel()
     qu = ch.queue_declare(queue=self.job_queue)
-    ch.basic_consume(on_message_callback=on_message, queue=self.job_queue)
+    ch.basic_consume(on_message_callback=on_message, queue=self.job_queue, auto_ack=False)
     
     #-------------
     tmp_tread = Thread(target=timeout_kill_func)

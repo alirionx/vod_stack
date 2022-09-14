@@ -300,7 +300,7 @@ spec:
   selector:
     matchLabels:
       app: media-api
-  replicas: 4
+  replicas: 3
   strategy:
     rollingUpdate:
       maxSurge: 25%
@@ -478,7 +478,7 @@ spec:
   selector:
     matchLabels:
       app: vod-api
-  replicas: 4
+  replicas: 3
   strategy:
     rollingUpdate:
       maxSurge: 25%
