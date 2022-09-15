@@ -167,7 +167,10 @@ class StreamMgmt:
     #--------
     for id in self.couchdb_cli:
       if id not in streams_id_list:
-        self.delete_doc_by_id(id=id)
+        try:
+          self.delete_doc_by_id(id=id)
+        except Exception as e:
+          print(e)
 
   #---------------------------------
 
