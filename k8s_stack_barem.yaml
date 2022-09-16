@@ -156,7 +156,7 @@ metadata:
   name: s3-ing
   namespace: vod-stack
   annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
     kubernetes.io/ingress.class: nginx
     nginx.ingress.kubernetes.io/affinity: cookie
     nginx.ingress.kubernetes.io/proxy-buffering: 'off'
@@ -164,10 +164,10 @@ metadata:
 spec:
   tls:
     - hosts:
-        - vod-s3.app-scape.de
-      secretName: s3-de-tls
+        - vod-s3.app-scape.lab
+      secretName: appscape-wildcard-tls
   rules:
-    - host: vod-s3.app-scape.de
+    - host: vod-s3.app-scape.lab
       http:
         paths:
           - path: /
@@ -379,7 +379,7 @@ metadata:
   name: media-api-ing
   namespace: vod-stack
   annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
     kubernetes.io/ingress.class: nginx
     nginx.ingress.kubernetes.io/affinity: cookie
     nginx.ingress.kubernetes.io/proxy-buffering: 'off'
@@ -387,10 +387,10 @@ metadata:
 spec:
   tls:
     - hosts:
-        - vod-media-api.app-scape.de
-      secretName: media-api-de-tls
+        - vod-media-api.app-scape.lab
+      secretName: appscape-wildcard-tls
   rules:
-    - host: vod-media-api.app-scape.de
+    - host: vod-media-api.app-scape.lab
       http:
         paths:
           - path: /
@@ -577,17 +577,17 @@ metadata:
   name: vod-api-ing
   namespace: vod-stack
   annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
     kubernetes.io/ingress.class: nginx
     nginx.ingress.kubernetes.io/affinity: cookie
     nginx.ingress.kubernetes.io/proxy-buffering: 'off'
 spec:
   tls:
     - hosts:
-        - vod-vod-api.app-scape.de
-      secretName: vod-api-de-tls
+        - vod-vod-api.app-scape.lab
+      secretName: appscape-wildcard-tls
   rules:
-    - host: vod-vod-api.app-scape.de
+    - host: vod-vod-api.app-scape.lab
       http:
         paths:
           - path: /
